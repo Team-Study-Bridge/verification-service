@@ -21,18 +21,24 @@ public class VerificationFunctionConfig {
 
     @Bean
     public Function<Flux<VerificationRequestMessage>, Flux<VerificationResponseMessage>> verify() {
-        return flux -> flux
-                .flatMap(request ->
-                    portOneClient.verifyPayment(request.impUid())
-                            .map(rsp -> {
-                                boolean isValid = rsp.response().amount() == request.amount();
-                                return new VerificationResponseMessage(request.purchaseId(), isValid, null); // PortOneClient는 Mono 반환
-                            })
-                            .onErrorResume(e -> {
-                                log.error("[검증 예외 발생] id: {}, 원인: {}", request.purchaseId(), e.getMessage());
-                                return Mono.just(new VerificationResponseMessage(request.purchaseId(), false, e.getMessage()));
-                            })
-                );
-    }
+        return flux -> flux.flatMap(request ->
+                portOneClient.verifyPayment(request.impUid())
+                        .map(rsp -> {
+                            int expected = request.amount();
+                            int actual = rsp.response().amount();
 
+                            boolean isValid = expected == actual;
+                            String reason = isValid ? null :
+                                    String.format("결제 금액 불일치: 예상=%d, 실제=%d", expected, actual);
+
+                            log.info("[검증 결과] id={}, isValid={}, reason={}", request.purchaseId(), isValid, reason);
+                            return new VerificationResponseMessage(request.purchaseId(), isValid, reason);
+                        })
+                        .onErrorResume(e -> {
+                            String errorMessage = "PortOne 통신 실패: " + e.getMessage();
+                            log.error("[검증 예외 발생] id={}, reason={}", request.purchaseId(), errorMessage);
+                            return Mono.just(new VerificationResponseMessage(request.purchaseId(), false, errorMessage));
+                        })
+        );
+    }
 }
