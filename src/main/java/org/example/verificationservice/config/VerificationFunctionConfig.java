@@ -24,7 +24,7 @@ public class VerificationFunctionConfig {
         return flux -> flux.flatMap(request ->
                 portOneClient.verifyPayment(request.impUid())
                         .map(rsp -> {
-                            int expected = request.amount();
+                            int expected = request.paidAmount();
                             int actual = rsp.response().amount();
 
                             boolean isValid = expected == actual;
