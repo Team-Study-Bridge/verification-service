@@ -35,7 +35,7 @@ public class VerificationFunctionConfig {
                             return new VerificationResponseMessage(request.purchaseId(), isValid, reason);
                         })
                         .onErrorResume(e -> {
-                            String errorMessage = "포트원과 통신 실패: " + e.getMessage();
+                            String errorMessage = "포트원 통신 실패: " + e.getMessage();
                             log.error("결제 검증을 하던 중 예외가 발생하였습니다. id={}, reason={}", request.purchaseId(), errorMessage);
                             return Mono.just(new VerificationResponseMessage(request.purchaseId(), false, errorMessage));
                         })
